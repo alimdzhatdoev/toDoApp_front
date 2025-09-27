@@ -11,8 +11,17 @@
     --radius-xxl: 24px;
     --gap: 12px;
 
-    /* максимум для панели; всё, что не помещается — скроллят списки */
+    /* Панель ограничиваем по высоте */
     --panel-max-h: 80vh;
+
+    /* Цвета для скроллбаров */
+    --sc-track: #201a29;
+    --sc-thumb: #6f58d8;
+    /* фиолетовый ползунок */
+    --sc-thumb-hover: #8c78ff;
+    /* подсветка на hover */
+    --sc-border: #1b1523;
+    /* бордер вокруг ползунка */
 }
 
 * {
@@ -53,7 +62,7 @@ input {
     padding: 32px 16px;
 }
 
-/* ПАНЕЛЬ: flex-колонка с ограничением по высоте */
+/* ПАНЕЛЬ: flex-колонка + ограничение по высоте */
 .panel {
     width: 100%;
     max-width: 720px;
@@ -81,7 +90,6 @@ input {
     background: transparent;
     border: 1.5px solid #3a314a;
     border-radius: 999px;
-    outline: none;
     transition: border-color .2s;
 }
 
@@ -133,8 +141,6 @@ input {
     min-height: 0
 }
 
-/* min-height:0 важно для корректного flex-скролла */
-
 /* СПИСКИ */
 .list {
     display: grid;
@@ -143,20 +149,50 @@ input {
 
 .list--scroll {
     overflow: auto;
-    /* скролл именно у этого контейнера */
     padding-right: 4px;
-    /* чтобы не прилипал контент к скроллбару */
     height: 100%;
-    /* займет доступное пространство секции */
 }
 
 .list--scroll-small {
     max-height: 28vh;
-    /* ограничим высоту раскрытого "Done" */
     overflow: auto;
 }
 
-/* КОЛЛАПС */
+/* ПРИЯТНЫЕ СКРОЛЛБАРЫ (WebKit) — только у списков */
+.list--scroll::-webkit-scrollbar,
+.list--scroll-small::-webkit-scrollbar {
+    width: 10px;
+}
+
+.list--scroll::-webkit-scrollbar-track,
+.list--scroll-small::-webkit-scrollbar-track {
+    background: var(--sc-track);
+    border-radius: 8px;
+}
+
+.list--scroll::-webkit-scrollbar-thumb,
+.list--scroll-small::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--accent), var(--sc-thumb));
+    border-radius: 8px;
+    border: 2px solid var(--sc-border);
+    /* создаёт “впаянный” эффект */
+}
+
+.list--scroll::-webkit-scrollbar-thumb:hover,
+.list--scroll-small::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--accent-2), var(--sc-thumb-hover));
+}
+
+/* Firefox скроллбары */
+.list--scroll,
+.list--scroll-small {
+    scrollbar-width: thin;
+    /* тонкие */
+    scrollbar-color: var(--sc-thumb) var(--sc-track);
+    /* thumb / track */
+}
+
+/* КОЛЛАПС "Done" */
 .collapse-btn {
     width: 100%;
     display: flex;
@@ -177,6 +213,8 @@ input {
     transition: height .2s ease
 }
 
+.collapsed {}
+
 .chev {
     transition: transform .2s ease
 }
@@ -189,7 +227,7 @@ input {
 .item {
     display: grid;
     grid-template-columns: 1fr auto auto auto;
-    /* + кнопка редактирования */
+    /* text + edit + check + delete */
     gap: 12px;
     align-items: center;
     padding: 16px;
@@ -220,7 +258,7 @@ input {
     place-items: center;
     border-radius: 10px;
     border: 1px solid #352a42;
-    transition: background .15s, border-color .15s, transform .05s;
+    transition: background .15s, border-color .15s, transform .05s, box-shadow .15s;
 }
 
 .icon-btn:hover {
@@ -242,10 +280,17 @@ input {
     background: #3a222a
 }
 
-/* ФОКУС */
+/* ФОКУС-БЕЗ-OUTLINE:
+   убираем стандартный outline и даём мягкое свечение,
+   чтобы не потерять видимость фокуса */
+*:focus {
+    outline: none;
+}
+
+/* глобально убираем browser outline */
 .focus-ring:focus {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px
+    box-shadow: 0 0 0 2px rgba(165, 134, 255, .45);
+    /* фиолетовое свечение */
 }
 
 /* ПУСТЫЕ СОСТОЯНИЯ */
