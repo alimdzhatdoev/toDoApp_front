@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+    <meta charset="utf-8" />
+    <title>ToDo — Dark</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+    <main class="page">
+        <section class="panel" aria-labelledby="panel-title">
+            <h1 id="panel-title" class="sr-only">ToDo приложение</h1>
+
+            <!-- Форма добавления -->
+            <form class="add" id="add-form" autocomplete="off">
+                <input id="new-title" class="input focus-ring" type="text" name="title" placeholder="Add a new task"
+                    aria-label="Add a new task" maxlength="160" required />
+                <button type="submit" class="btn-add focus-ring" aria-label="Add task" title="Add task">+</button>
+            </form>
+
+            <!-- Секция невыполненных (она растягивается и именно тут скролл) -->
+            <section class="section section--todo">
+                <div class="section-title">
+                    <span>Tasks to do – <b id="todo-count">0</b></span>
+                </div>
+                <!-- ВАЖНО: этот список скроллится -->
+                <div id="todo-list" class="list list--scroll" role="list" aria-live="polite"></div>
+                <div id="todo-empty" class="empty" hidden>No tasks yet. Add your first one!</div>
+            </section>
+
+            <!-- Секция выполненных с кнопкой сворачивания -->
+            <section class="section section--done">
+                <button id="done-toggle" class="collapse-btn focus-ring" aria-expanded="false"
+                    aria-controls="done-wrapper">
+                    <span>Done – <b id="done-count">0</b></span>
+                    <span class="chev" aria-hidden="true">▸</span>
+                </button>
+
+                <!-- Обёртка, которую сворачиваем/разворачиваем -->
+                <div id="done-wrapper" class="collapse collapsed" hidden>
+                    <div id="done-list" class="list list--scroll-small" role="list" aria-live="polite"></div>
+                    <div id="done-empty" class="empty" hidden>No completed tasks yet.</div>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <script src="./app.js"></script>
+</body>
+
+</html>

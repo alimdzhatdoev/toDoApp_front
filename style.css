@@ -1,0 +1,258 @@
+:root {
+    --bg: #0f0c14;
+    --panel: #1a1622;
+    --panel-2: #231d2c;
+    --text: #d6cdee;
+    --muted: #a298c4;
+    --accent: #a586ff;
+    --accent-2: #c1adff;
+    --success: #7ce0c2;
+    --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    --radius-xxl: 24px;
+    --gap: 12px;
+
+    /* максимум для панели; всё, что не помещается — скроллят списки */
+    --panel-max-h: 80vh;
+}
+
+* {
+    box-sizing: border-box
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+button {
+    font: inherit;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer
+}
+
+input {
+    font: inherit;
+    color: var(--text)
+}
+
+.sr-only {
+    position: absolute;
+    left: -9999px
+}
+
+.page {
+    min-height: 100%;
+    display: grid;
+    place-items: center;
+    padding: 32px 16px;
+}
+
+/* ПАНЕЛЬ: flex-колонка с ограничением по высоте */
+.panel {
+    width: 100%;
+    max-width: 720px;
+    background: var(--panel);
+    border-radius: var(--radius-xxl);
+    padding: 28px;
+    box-shadow: var(--shadow);
+    max-height: var(--panel-max-h);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+/* ФОРМА */
+.add {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--gap);
+    align-items: center;
+}
+
+.input {
+    height: 44px;
+    padding: 0 14px;
+    background: transparent;
+    border: 1.5px solid #3a314a;
+    border-radius: 999px;
+    outline: none;
+    transition: border-color .2s;
+}
+
+.input::placeholder {
+    color: #7e719b
+}
+
+.input:focus {
+    border-color: var(--accent)
+}
+
+.btn-add {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #120d1a;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    transition: background .15s, transform .05s;
+}
+
+.btn-add:hover {
+    background: var(--accent-2)
+}
+
+.btn-add:active {
+    transform: translateY(1px)
+}
+
+/* СЕКЦИИ */
+.section-title {
+    font-weight: 600;
+    color: var(--muted);
+    margin: 0 4px 8px;
+    letter-spacing: .2px
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px
+}
+
+/* НЕВЫПОЛНЕННЫЕ — растягиваем, чтобы скролл был именно у списка */
+.section--todo {
+    flex: 1;
+    min-height: 0
+}
+
+/* min-height:0 важно для корректного flex-скролла */
+
+/* СПИСКИ */
+.list {
+    display: grid;
+    gap: 12px
+}
+
+.list--scroll {
+    overflow: auto;
+    /* скролл именно у этого контейнера */
+    padding-right: 4px;
+    /* чтобы не прилипал контент к скроллбару */
+    height: 100%;
+    /* займет доступное пространство секции */
+}
+
+.list--scroll-small {
+    max-height: 28vh;
+    /* ограничим высоту раскрытого "Done" */
+    overflow: auto;
+}
+
+/* КОЛЛАПС */
+.collapse-btn {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border: 1px solid #342a44;
+    border-radius: 10px;
+    background: #201a29;
+}
+
+.collapse-btn:hover {
+    border-color: #45365a;
+    background: #241e30
+}
+
+.collapse {
+    transition: height .2s ease
+}
+
+.chev {
+    transition: transform .2s ease
+}
+
+.collapse-btn[aria-expanded="true"] .chev {
+    transform: rotate(90deg)
+}
+
+/* КАРТОЧКА ЗАДАЧИ */
+.item {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    /* + кнопка редактирования */
+    gap: 12px;
+    align-items: center;
+    padding: 16px;
+    background: var(--panel-2);
+    border-radius: 14px;
+    border: 1px solid #2c2437;
+}
+
+.title {
+    color: #cbbef0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.title.done {
+    color: var(--success);
+    text-decoration: line-through;
+    text-decoration-thickness: 2px;
+    text-decoration-color: rgba(124, 224, 194, .7);
+}
+
+/* ИКОНОЧНЫЕ КНОПКИ */
+.icon-btn {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    border: 1px solid #352a42;
+    transition: background .15s, border-color .15s, transform .05s;
+}
+
+.icon-btn:hover {
+    background: #2b2235;
+    border-color: #413351
+}
+
+.icon-btn:active {
+    transform: translateY(1px)
+}
+
+.icon-btn--check[data-checked="true"] {
+    border-color: #33594f;
+    background: #20312d
+}
+
+.icon-btn--trash:hover {
+    border-color: #5b3441;
+    background: #3a222a
+}
+
+/* ФОКУС */
+.focus-ring:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px
+}
+
+/* ПУСТЫЕ СОСТОЯНИЯ */
+.empty {
+    color: #6e628a;
+    padding: 14px 16px;
+    border: 1px dashed #3a314a;
+    border-radius: 12px;
+    text-align: center;
+}
