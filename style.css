@@ -213,8 +213,6 @@ input {
     transition: height .2s ease
 }
 
-.collapsed {}
-
 .chev {
     transition: transform .2s ease
 }
