@@ -1,25 +1,20 @@
-// ====== ХРАНИЛИЩЕ/СОСТОЯНИЕ ======
-const STORAGE_KEY = 'todo-list.v1';
-const UI_KEY = 'todo-ui.v1'; // для состояния UI (свернуто/развернуто)
+// ==============================
+//  ToDo (frontend) + Django API
+//  Этот файл НЕ объявляет const API и CRUD — они берутся из api.js
+//  Сохраняем в localStorage только состояние "свернуть Done"
+// ==============================
 
+// ====== UI state only ======
+const UI_KEY = 'todo-ui.v1';
 const state = {
-    items: loadItems(),
-    ui: loadUI()
+    items: [],                                 // задачи придут с сервера
+    ui: loadUI()                               // свернутость "Done"
 };
-
-function loadItems() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-    catch { return []; }
-}
-function saveItems() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.items)); }
-
 function loadUI() {
     try { return Object.assign({ doneCollapsed: true }, JSON.parse(localStorage.getItem(UI_KEY) || '{}')); }
     catch { return { doneCollapsed: true }; }
 }
 function saveUI() { localStorage.setItem(UI_KEY, JSON.stringify(state.ui)); }
-
-const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
 // ====== DOM ======
 const form = document.getElementById('add-form');
@@ -27,19 +22,38 @@ const input = document.getElementById('new-title');
 
 const todoList = document.getElementById('todo-list');
 const doneList = document.getElementById('done-list');
-
 const todoCountEl = document.getElementById('todo-count');
 const doneCountEl = document.getElementById('done-count');
-
 const todoEmpty = document.getElementById('todo-empty');
 const doneEmpty = document.getElementById('done-empty');
-
 const doneToggle = document.getElementById('done-toggle');
 const doneWrapper = document.getElementById('done-wrapper');
 
-// ====== РЕНДЕР ======
+// ====== helpers ======
 function byCreatedDesc(a, b) { return b.createdAt - a.createdAt; }
+function normalizeFromServer(dto) {
+    return {
+        id: dto.id,
+        title: dto.title,
+        done: dto.status === 'done',
+        createdAt: Date.parse(dto.created_at || Date.now())
+    };
+}
 
+// ====== init ======
+init();
+async function init() {
+    try {
+        const list = await apiGetTodos();            // из api.js
+        state.items = list.map(normalizeFromServer).sort(byCreatedDesc);
+        render();
+    } catch (e) {
+        console.error('Load failed', e);
+        alert('Не удалось загрузить задачи с сервера.');
+    }
+}
+
+// ====== render ======
 function render() {
     todoList.innerHTML = '';
     doneList.innerHTML = '';
@@ -56,7 +70,6 @@ function render() {
     todoEmpty.hidden = todos.length !== 0;
     doneEmpty.hidden = dones.length !== 0;
 
-    // отрисуем состояние коллапса "Done"
     applyDoneCollapsed(state.ui.doneCollapsed);
 }
 
@@ -65,15 +78,12 @@ function renderItem(item) {
     el.className = 'item';
     el.setAttribute('role', 'listitem');
 
-    // Текст
     const title = document.createElement('div');
     title.className = 'title' + (item.done ? ' done' : '');
     title.textContent = item.title;
-    // Двойной клик = редактирование
     title.addEventListener('dblclick', () => startEdit(item, el, title));
     el.appendChild(title);
 
-    // Кнопка редактирования (карандаш)
     const btnEdit = document.createElement('button');
     btnEdit.className = 'icon-btn focus-ring';
     btnEdit.setAttribute('aria-label', 'Edit task');
@@ -82,7 +92,6 @@ function renderItem(item) {
     btnEdit.addEventListener('click', () => startEdit(item, el, title));
     el.appendChild(btnEdit);
 
-    // Переключение done
     const btnToggle = document.createElement('button');
     btnToggle.className = 'icon-btn icon-btn--check focus-ring';
     btnToggle.dataset.checked = String(item.done);
@@ -92,7 +101,6 @@ function renderItem(item) {
     btnToggle.addEventListener('click', () => toggleDone(item.id));
     el.appendChild(btnToggle);
 
-    // Удаление
     const btnTrash = document.createElement('button');
     btnTrash.className = 'icon-btn icon-btn--trash focus-ring';
     btnTrash.setAttribute('aria-label', 'Delete task');
@@ -104,27 +112,50 @@ function renderItem(item) {
     return el;
 }
 
-// ====== ОПЕРАЦИИ ======
-function addItem(title) {
+// ====== operations (через api.js) ======
+async function addItem(title) {
     const t = title.trim();
     if (!t) return;
-    state.items.push({ id: uid(), title: t, done: false, createdAt: Date.now() });
-    saveItems(); render();
-}
-function toggleDone(id) {
-    const item = state.items.find(i => i.id === id);
-    if (!item) return;
-    item.done = !item.done;
-    saveItems(); render();
-}
-function removeItem(id) {
-    state.items = state.items.filter(i => i.id !== id);
-    saveItems(); render();
+    try {
+        const created = await apiCreateTodo({ title: t, status: 'todo' }); // api.js
+        const item = normalizeFromServer(created);
+        state.items.unshift(item);             // новые — вверх
+        render();
+    } catch (e) {
+        console.error(e);
+        alert('Не удалось создать задачу');
+    }
 }
 
-// ====== РЕДАКТИРОВАНИЕ ======
+async function toggleDone(id) {
+    const item = state.items.find(i => i.id === id);
+    if (!item) return;
+    const nextStatus = item.done ? 'todo' : 'done';
+    try {
+        const upd = await apiUpdateTodo(id, { status: nextStatus });       // api.js
+        const norm = normalizeFromServer(upd);
+        const idx = state.items.findIndex(x => x.id === id);
+        if (idx >= 0) state.items[idx] = norm;
+        render();
+    } catch (e) {
+        console.error(e);
+        alert('Не удалось обновить задачу');
+    }
+}
+
+async function removeItem(id) {
+    try {
+        await apiDeleteTodo(id);                                         // api.js
+        state.items = state.items.filter(i => i.id !== id);
+        render();
+    } catch (e) {
+        console.error(e);
+        alert('Не удалось удалить задачу');
+    }
+}
+
+// ====== редактирование ======
 function startEdit(item, container, titleEl) {
-    // создаём input и две кнопки (сохранить/отмена)
     const edit = document.createElement('input');
     edit.className = 'input focus-ring';
     edit.style.height = '36px';
@@ -143,19 +174,28 @@ function startEdit(item, container, titleEl) {
     btnCancel.title = 'Cancel';
     btnCancel.innerHTML = crossSvg();
 
-    // собираем временную строку: [input][Save][Cancel]
     const row = document.createElement('div');
     row.className = 'item';
-    row.style.gridTemplateColumns = '1fr auto auto'; // без кнопок чек/удаление на время редактирования
+    row.style.gridTemplateColumns = '1fr auto auto';
     row.appendChild(edit); row.appendChild(btnSave); row.appendChild(btnCancel);
 
     container.replaceWith(row);
     edit.focus(); edit.select();
 
-    const finish = (commit) => {
+    const finish = async (commit) => {
         if (commit) {
             const v = edit.value.trim();
-            if (v) { item.title = v; saveItems(); }
+            if (v && v !== item.title) {
+                try {
+                    const upd = await apiUpdateTodo(item.id, { title: v });     // api.js
+                    const norm = normalizeFromServer(upd);
+                    const idx = state.items.findIndex(x => x.id === item.id);
+                    if (idx >= 0) state.items[idx] = norm;
+                } catch (e) {
+                    console.error(e);
+                    alert('Не удалось сохранить изменения');
+                }
+            }
         }
         render();
     };
@@ -169,7 +209,7 @@ function startEdit(item, container, titleEl) {
     edit.addEventListener('blur', () => finish(true));
 }
 
-// ====== КОЛЛАПС "DONE" ======
+// ====== коллапс "Done" ======
 doneToggle.addEventListener('click', () => {
     state.ui.doneCollapsed = !state.ui.doneCollapsed;
     saveUI();
@@ -177,25 +217,18 @@ doneToggle.addEventListener('click', () => {
 });
 function applyDoneCollapsed(collapsed) {
     doneToggle.setAttribute('aria-expanded', String(!collapsed));
-    // скрываем/показываем обертку
     doneWrapper.hidden = collapsed;
-    if (collapsed) {
-        doneWrapper.classList.add('collapsed');
-    } else {
-        doneWrapper.classList.remove('collapsed');
-    }
+    if (collapsed) doneWrapper.classList.add('collapsed');
+    else doneWrapper.classList.remove('collapsed');
 }
 
-// ====== UI: форма добавления ======
+// ====== форма добавления ======
 form.addEventListener('submit', (e) => {
     e.preventDefault();
     addItem(input.value);
     form.reset();
     input.focus();
 });
-
-// старт
-render();
 
 // ====== SVG ======
 function checkSvg() {
@@ -209,14 +242,13 @@ function trashSvg() {
     return `
   <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
     <path fill="#ff99b1"
-      d="M9 3h6a1 1 0 0 1 1 1v1h4a1 1 0 1 1 0 2h-1v12a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V7H4a1 1 0 0 1 0-2h4V4a1 1 0 0 1 1-1zm1 2h4V4h-4v1zM7 7v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V7H7zm3 3a1 1 0 0 1 2 0v7a1 1 0 0 1-2 0v-7zm4 0a1 1 0 0 1 2 0v7a1 1 0 0 1-2 0v-7z"/>
-  </svg>`;
+      d="M9 3h6a1 1 0 0 1 1 1v1h4a1 1 0 1 1 0 2h-1v12a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V7H4a1 1 0 0 1 0-2h4V4a1 1 0 0 1 1-1zm1 2h4V4h-4v1zM7 7v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V7Ҳ"/>`;
 }
 function pencilSvg() {
     return `
   <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
     <path fill="#cbbef0"
-      d="M3 17.25V21h3.75l11.06-11.06-3.75-3.75L3 17.25zm17.71-10.96a1.003 1.003 0 0 0 0-1.42l-1.58-1.58a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.08-1.08z"/>
+      d="M3 17.25V21h3.75l11.06-11.06-3.75-3.75L3 17.25zm17.71-10.96a1.003 1.003 0 0 0 0-1.42l-1.58-1.58a1 1 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.08-1.08z"/>
   </svg>`;
 }
 function checkThinSvg() {
