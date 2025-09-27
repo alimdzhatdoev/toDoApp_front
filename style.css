@@ -110,6 +110,7 @@ input {
     display: grid;
     place-items: center;
     font-weight: 700;
+    padding-bottom: 5px;
     transition: background .15s, transform .05s;
 }
 
